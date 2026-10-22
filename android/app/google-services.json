@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "311752015516",
+    "project_id": "mecawagw",
+    "storage_bucket": "mecawagw.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:311752015516:android:9864e8821c6ea47a7bb759",
+        "android_client_info": {
+          "package_name": "com.example.mecawaga"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBEdvrjHSfx2QkVC_7M1NdXyGjeK1U3GsU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

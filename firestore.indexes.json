@@ -1,0 +1,308 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "acces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "mecanicienId", "order": "ASCENDING" },
+        { "fieldPath": "motoId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "interventions",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "interventions",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "motoId", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "interventions",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "mecanicienId", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ateliers",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "profilComplet", "order": "ASCENDING" },
+        { "fieldPath": "specialites", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "position.geohash", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "datePublication", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "prix", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "prix", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "titrePrefixes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "datePublication", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "titrePrefixes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "prix", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "titrePrefixes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "prix", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "vendeurId", "order": "ASCENDING" },
+        { "fieldPath": "datePublication", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "categorie", "order": "ASCENDING" },
+        { "fieldPath": "datePublication", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "categorie", "order": "ASCENDING" },
+        { "fieldPath": "prix", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "categorie", "order": "ASCENDING" },
+        { "fieldPath": "prix", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "etat", "order": "ASCENDING" },
+        { "fieldPath": "datePublication", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "etat", "order": "ASCENDING" },
+        { "fieldPath": "prix", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "etat", "order": "ASCENDING" },
+        { "fieldPath": "prix", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "titrePrefixes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "datePublication", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "titrePrefixes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "prix", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "titrePrefixes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "prix", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "categorie", "order": "ASCENDING" },
+        { "fieldPath": "etat", "order": "ASCENDING" },
+        { "fieldPath": "datePublication", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "categorie", "order": "ASCENDING" },
+        { "fieldPath": "etat", "order": "ASCENDING" },
+        { "fieldPath": "prix", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "categorie", "order": "ASCENDING" },
+        { "fieldPath": "etat", "order": "ASCENDING" },
+        { "fieldPath": "prix", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "categorie", "order": "ASCENDING" },
+        { "fieldPath": "titrePrefixes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "datePublication", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "categorie", "order": "ASCENDING" },
+        { "fieldPath": "titrePrefixes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "prix", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "categorie", "order": "ASCENDING" },
+        { "fieldPath": "titrePrefixes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "prix", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "etat", "order": "ASCENDING" },
+        { "fieldPath": "titrePrefixes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "datePublication", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "etat", "order": "ASCENDING" },
+        { "fieldPath": "titrePrefixes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "prix", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "etat", "order": "ASCENDING" },
+        { "fieldPath": "titrePrefixes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "prix", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "categorie", "order": "ASCENDING" },
+        { "fieldPath": "etat", "order": "ASCENDING" },
+        { "fieldPath": "titrePrefixes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "datePublication", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "categorie", "order": "ASCENDING" },
+        { "fieldPath": "etat", "order": "ASCENDING" },
+        { "fieldPath": "titrePrefixes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "prix", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "annonces",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "statut", "order": "ASCENDING" },
+        { "fieldPath": "categorie", "order": "ASCENDING" },
+        { "fieldPath": "etat", "order": "ASCENDING" },
+        { "fieldPath": "titrePrefixes", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "prix", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

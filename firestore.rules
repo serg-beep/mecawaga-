@@ -1,0 +1,425 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userPath(uid) {
+      return /databases/$(database)/documents/utilisateurs/$(uid);
+    }
+
+    function hasRole(role) {
+      return signedIn()
+        && exists(userPath(request.auth.uid))
+        && get(userPath(request.auth.uid)).data.role == role;
+    }
+
+    function hasRoleAfter(role, uid) {
+      return signedIn()
+        && request.auth.uid == uid
+        && existsAfter(userPath(uid))
+        && getAfter(userPath(uid)).data.role == role;
+    }
+
+    function motoPath(motoId) {
+      return /databases/$(database)/documents/motos/$(motoId);
+    }
+
+    function accessId(motoId, mecanicienId) {
+      return motoId + '_' + mecanicienId;
+    }
+
+    function accessPath(motoId, mecanicienId) {
+      return /databases/$(database)/documents/acces/$(accessId(motoId, mecanicienId));
+    }
+
+    function accessForCurrentMechanic(motoId) {
+      return exists(accessPath(motoId, request.auth.uid))
+        && get(accessPath(motoId, request.auth.uid)).data.motoId == motoId
+        && get(accessPath(motoId, request.auth.uid)).data.mecanicienId == request.auth.uid;
+    }
+
+    function ownsMoto(motoId) {
+      return signedIn()
+        && exists(motoPath(motoId))
+        && get(motoPath(motoId)).data.proprietaireId == request.auth.uid;
+    }
+
+    function isDeletingOwnAccount() {
+      return signedIn()
+        && exists(userPath(request.auth.uid))
+        && get(userPath(request.auth.uid)).data.deletionRequested == true;
+    }
+
+    function sellerRoleMatches(vendeurEstMecanicien) {
+      return vendeurEstMecanicien is bool
+        && exists(userPath(request.auth.uid))
+        && vendeurEstMecanicien
+          == (get(userPath(request.auth.uid)).data.role == 'mecanicien');
+    }
+
+    function validAccessCode(code) {
+      let path = /databases/$(database)/documents/codesAcces/$(code);
+      return exists(path)
+        && get(path).data.expireLe is timestamp
+        && get(path).data.expireLe > request.time;
+    }
+
+    function hasActiveCodeForMoto(motoId, code, proprietaireId) {
+      let codePath = /databases/$(database)/documents/codesAcces/$(code);
+      return exists(codePath)
+        && get(codePath).data.motoId == motoId
+        && get(codePath).data.proprietaireId == proprietaireId
+        && validAccessCode(code);
+    }
+
+    match /utilisateurs/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list: if false;
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasAll([
+          'nom', 'telephone', 'email', 'role', 'dateCreation'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'nom', 'telephone', 'email', 'role', 'dateCreation'
+        ])
+        && request.resource.data.role in ['proprietaire', 'mecanicien']
+        && request.resource.data.dateCreation == request.time;
+      allow update: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.dateCreation == resource.data.dateCreation
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'nom', 'telephone', 'email', 'dateModification', 'deletionRequested'
+        ])
+        && (!request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['dateModification'])
+          || request.resource.data.dateModification == request.time)
+        && (!request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['deletionRequested'])
+          || request.resource.data.deletionRequested == true)
+        && (!('deletionRequested' in resource.data)
+          || resource.data.deletionRequested != true
+          || request.resource.data.deletionRequested == true);
+      allow delete: if signedIn() && request.auth.uid == uid;
+
+      match /signalementsMarche/{annonceId} {
+        allow get, list: if signedIn() && request.auth.uid == uid;
+        allow delete: if signedIn()
+          && request.auth.uid == uid
+          && isDeletingOwnAccount();
+        allow create: if signedIn()
+          && request.auth.uid == uid
+          && request.resource.data.annonceId == annonceId
+          && existsAfter(
+            /databases/$(database)/documents/signalements/$(annonceId + '_' + uid)
+          );
+        allow update: if false;
+      }
+    }
+
+    match /motos/{motoId} {
+      allow get: if signedIn()
+        && (resource.data.proprietaireId == request.auth.uid
+          || (hasRole('mecanicien')
+            && (accessForCurrentMechanic(motoId)
+              || (('codeAccesActif' in resource.data)
+                && resource.data.codeAccesActif is string
+                && hasActiveCodeForMoto(
+                  motoId,
+                  resource.data.codeAccesActif,
+                  resource.data.proprietaireId
+                )))));
+      allow list: if signedIn()
+        && (resource.data.proprietaireId == request.auth.uid
+          || (hasRole('mecanicien') && accessForCurrentMechanic(motoId)));
+      allow create: if hasRole('proprietaire')
+        && request.resource.data.proprietaireId == request.auth.uid;
+      allow update: if hasRole('proprietaire')
+        && resource.data.proprietaireId == request.auth.uid
+        && request.resource.data.proprietaireId == resource.data.proprietaireId;
+      allow update: if hasRole('mecanicien')
+        && accessForCurrentMechanic(motoId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['kilometrage'])
+        && request.resource.data.kilometrage is number
+        && request.resource.data.kilometrage > resource.data.kilometrage;
+      allow delete: if hasRole('proprietaire')
+        && resource.data.proprietaireId == request.auth.uid;
+
+      match /interventions/{interventionId} {
+        allow read: if signedIn()
+          && (get(motoPath(motoId)).data.proprietaireId == request.auth.uid
+            || (hasRole('mecanicien') && accessForCurrentMechanic(motoId))
+            || (isDeletingOwnAccount()
+              && resource.data.mecanicienId == request.auth.uid));
+        allow create: if hasRole('mecanicien')
+          && request.resource.data.keys().hasAll([
+            'motoId', 'proprietaireId', 'creeLe'
+          ])
+          && request.resource.data.motoId == motoId
+          && request.resource.data.proprietaireId
+            == get(motoPath(motoId)).data.proprietaireId
+          && request.resource.data.creeLe == request.time
+          && accessForCurrentMechanic(motoId)
+          && request.resource.data.mecanicienId == request.auth.uid;
+        allow update: if false;
+        allow delete: if isDeletingOwnAccount()
+          && (get(userPath(request.auth.uid)).data.role == 'proprietaire'
+            && get(motoPath(motoId)).data.proprietaireId == request.auth.uid
+            || get(userPath(request.auth.uid)).data.role == 'mecanicien'
+              && resource.data.mecanicienId == request.auth.uid);
+      }
+
+      match /rappels/{rappelId} {
+        allow read: if signedIn()
+          && get(motoPath(motoId)).data.proprietaireId == request.auth.uid;
+        allow create: if hasRole('proprietaire')
+          && get(motoPath(motoId)).data.proprietaireId == request.auth.uid
+          && request.resource.data.motoId == motoId
+          && request.resource.data.proprietaireId == request.auth.uid;
+        allow update: if hasRole('proprietaire')
+          && get(motoPath(motoId)).data.proprietaireId == request.auth.uid
+          && resource.data.motoId == motoId
+          && request.resource.data.motoId == resource.data.motoId
+          && request.resource.data.proprietaireId == resource.data.proprietaireId;
+        allow delete: if hasRole('proprietaire')
+          && get(motoPath(motoId)).data.proprietaireId == request.auth.uid;
+      }
+    }
+
+    match /codesAcces/{code} {
+      allow get: if signedIn()
+        && ((resource.data.proprietaireId == request.auth.uid)
+          || hasRole('mecanicien'));
+      allow list: if hasRole('proprietaire')
+        && resource.data.proprietaireId == request.auth.uid;
+      allow create: if hasRole('proprietaire')
+        && request.resource.data.keys().hasAll([
+          'motoId', 'proprietaireId', 'expireLe'
+        ])
+        && request.resource.data.proprietaireId == request.auth.uid
+        && request.resource.data.expireLe is timestamp
+        && request.resource.data.expireLe > request.time
+        && ownsMoto(request.resource.data.motoId);
+      allow update: if hasRole('proprietaire')
+        && resource.data.proprietaireId == request.auth.uid
+        && request.resource.data.proprietaireId == resource.data.proprietaireId
+        && request.resource.data.motoId == resource.data.motoId;
+      allow delete: if hasRole('proprietaire')
+        && resource.data.proprietaireId == request.auth.uid;
+    }
+
+    match /acces/{accessDocumentId} {
+      allow get: if signedIn()
+        && (resource.data.proprietaireId == request.auth.uid
+          || (hasRole('mecanicien')
+            && resource.data.mecanicienId == request.auth.uid));
+      allow list: if signedIn()
+        && (resource.data.proprietaireId == request.auth.uid
+          || (hasRole('mecanicien')
+            && resource.data.mecanicienId == request.auth.uid));
+      allow create: if hasRole('mecanicien')
+        && request.resource.data.keys().hasAll([
+          'motoId', 'proprietaireId', 'mecanicienId',
+          'dateAutorisation', 'code'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'motoId', 'proprietaireId', 'mecanicienId',
+          'dateAutorisation', 'mecanicienNom', 'nomAtelier',
+          'proprietaireNom', 'code'
+        ])
+        && accessDocumentId
+          == accessId(request.resource.data.motoId, request.auth.uid)
+        && request.resource.data.mecanicienId == request.auth.uid
+        && request.resource.data.dateAutorisation == request.time
+        && request.resource.data.proprietaireId
+          == get(motoPath(request.resource.data.motoId)).data.proprietaireId
+        && request.resource.data.code is string
+        && exists(/databases/$(database)/documents/codesAcces/$(request.resource.data.code))
+        && get(/databases/$(database)/documents/codesAcces/$(request.resource.data.code)).data.motoId
+          == request.resource.data.motoId
+        && get(/databases/$(database)/documents/codesAcces/$(request.resource.data.code)).data.proprietaireId
+          == request.resource.data.proprietaireId
+        && validAccessCode(request.resource.data.code);
+      allow update: if false;
+      allow delete: if (ownsMoto(resource.data.motoId)
+          && accessDocumentId
+            == accessId(resource.data.motoId, resource.data.mecanicienId))
+        || (hasRole('mecanicien')
+          && isDeletingOwnAccount()
+          && resource.data.mecanicienId == request.auth.uid
+          && accessDocumentId
+            == accessId(resource.data.motoId, request.auth.uid));
+    }
+
+    match /ateliers/{uid} {
+      allow get, list: if signedIn();
+      allow create: if hasRoleAfter('mecanicien', uid)
+        && request.resource.data.keys().hasAll([
+          'nomAtelier', 'specialites', 'profilComplet', 'dateCreation'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'nomAtelier', 'specialites', 'profilComplet', 'dateCreation',
+          'telephone', 'latitude', 'longitude', 'positionRenseignee',
+          'position', 'precisions', 'precisionsAdresse', 'horaires',
+          'geohash', 'photoUrl'
+        ])
+        && request.resource.data.specialites is list
+        && request.resource.data.profilComplet is bool
+        && request.resource.data.dateCreation == request.time
+        && (!('positionRenseignee' in request.resource.data)
+          || request.resource.data.positionRenseignee is bool)
+        && (!('latitude' in request.resource.data)
+          || (request.resource.data.latitude is number
+            && request.resource.data.latitude >= -90
+            && request.resource.data.latitude <= 90))
+        && (!('longitude' in request.resource.data)
+          || (request.resource.data.longitude is number
+            && request.resource.data.longitude >= -180
+            && request.resource.data.longitude <= 180))
+        && (!('geohash' in request.resource.data)
+          || request.resource.data.geohash is string)
+        && (!('position' in request.resource.data)
+          || (request.resource.data.position is map
+            && 'geohash' in request.resource.data.position
+            && request.resource.data.position.geohash is string));
+      allow update: if hasRole('mecanicien')
+        && request.auth.uid == uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly([
+            'nomAtelier', 'specialites', 'telephone', 'latitude',
+            'longitude', 'positionRenseignee', 'position', 'geohash',
+            'precisions', 'precisionsAdresse', 'horaires', 'profilComplet',
+            'photoUrl'
+          ])
+        && request.resource.data.specialites is list
+        && (!('positionRenseignee' in request.resource.data)
+          || request.resource.data.positionRenseignee is bool)
+        && (!('latitude' in request.resource.data)
+          || (request.resource.data.latitude is number
+            && request.resource.data.latitude >= -90
+            && request.resource.data.latitude <= 90))
+        && (!('longitude' in request.resource.data)
+          || (request.resource.data.longitude is number
+            && request.resource.data.longitude >= -180
+            && request.resource.data.longitude <= 180))
+        && (!('geohash' in request.resource.data)
+          || request.resource.data.geohash is string)
+        && (!('position' in request.resource.data)
+          || (request.resource.data.position is map
+            && 'geohash' in request.resource.data.position
+            && request.resource.data.position.geohash is string));
+      allow delete: if hasRole('mecanicien') && request.auth.uid == uid;
+    }
+
+    match /annonces/{annonceId} {
+      // The app checks whether a new announcement document already exists
+      // before creating it. Signed-in users may read a missing document, but
+      // existing documents remain visible only when active or owned by them.
+      allow get: if signedIn()
+        && (!exists(
+          /databases/$(database)/documents/annonces/$(annonceId)
+        )
+        || resource.data.statut == 'active'
+        || resource.data.vendeurId == request.auth.uid);
+      allow list: if signedIn()
+        && (resource.data.statut == 'active'
+          || resource.data.vendeurId == request.auth.uid);
+      allow create: if signedIn()
+        && request.resource.data.vendeurId == request.auth.uid
+        && request.resource.data.vendeurEstMecanicien is bool
+        && request.resource.data.statut == 'active'
+        && request.resource.data.titre is string
+        && request.resource.data.titre.size() >= 5
+        && request.resource.data.titre.size() <= 80
+        && request.resource.data.prix is int
+        && request.resource.data.prix > 0
+        && request.resource.data.photos is list
+        && request.resource.data.photos.size() >= 1
+        && request.resource.data.photos.size() <= 5
+        && request.resource.data.nbSignalements == 0
+        && request.resource.data.titreRecherche is string
+        && request.resource.data.titrePrefixes is list
+        && request.resource.data.titrePrefixes.size() >= 5
+        && request.resource.data.titrePrefixes.size() <= 80
+        && request.resource.data.datePublication == request.time;
+      allow update: if signedIn()
+        && resource.data.vendeurId == request.auth.uid
+        && request.resource.data.vendeurId == resource.data.vendeurId
+        && sellerRoleMatches(request.resource.data.vendeurEstMecanicien)
+        && request.resource.data.nbSignalements == resource.data.nbSignalements
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'vendeurNom', 'vendeurEstMecanicien', 'titre', 'titreRecherche',
+          'titrePrefixes', 'categorie', 'etat', 'prix', 'negociable', 'description', 'photos',
+          'localisation', 'localisationRecherche', 'telephone', 'whatsapp',
+          'champsSpecifiques', 'statut'
+        ])
+        && request.resource.data.statut in ['active', 'vendue', 'masquee']
+        && request.resource.data.titre is string
+        && request.resource.data.titre.size() >= 5
+        && request.resource.data.titre.size() <= 80
+        && request.resource.data.prix is int
+        && request.resource.data.prix > 0
+        && request.resource.data.photos is list
+        && request.resource.data.photos.size() >= 1
+        && request.resource.data.photos.size() <= 5
+        && request.resource.data.titrePrefixes is list
+        && request.resource.data.titrePrefixes.size() >= 5
+        && request.resource.data.titrePrefixes.size() <= 80;
+      allow update: if signedIn()
+        && resource.data.statut == 'active'
+        && resource.data.vendeurId != request.auth.uid
+        && !exists(
+          /databases/$(database)/documents/signalements/$(annonceId + '_' + request.auth.uid)
+        )
+        && existsAfter(
+          /databases/$(database)/documents/signalements/$(annonceId + '_' + request.auth.uid)
+        )
+        && getAfter(
+          /databases/$(database)/documents/signalements/$(annonceId + '_' + request.auth.uid)
+        ).data.annonceId == annonceId
+        && getAfter(
+          /databases/$(database)/documents/signalements/$(annonceId + '_' + request.auth.uid)
+        ).data.auteurId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['nbSignalements'])
+        && request.resource.data.nbSignalements == resource.data.nbSignalements + 1;
+      allow delete: if signedIn()
+        && resource.data.vendeurId == request.auth.uid;
+    }
+
+    match /signalements/{reportId} {
+      allow get, list: if false;
+      allow create: if signedIn()
+        && request.resource.data.auteurId == request.auth.uid
+        && request.resource.data.annonceId is string
+        && request.resource.data.date == request.time
+        && reportId == request.resource.data.annonceId + '_' + request.auth.uid
+        && request.resource.data.motif is string
+        && request.resource.data.motif in [
+          'Annonce frauduleuse',
+          'Produit interdit',
+          'Informations fausses',
+          'Autre'
+        ]
+        && exists(
+          /databases/$(database)/documents/annonces/$(request.resource.data.annonceId)
+        )
+        && get(
+          /databases/$(database)/documents/annonces/$(request.resource.data.annonceId)
+        ).data.statut == 'active'
+        && get(
+          /databases/$(database)/documents/annonces/$(request.resource.data.annonceId)
+        ).data.vendeurId != request.auth.uid;
+      allow update: if false;
+      allow delete: if signedIn()
+        && resource.data.auteurId == request.auth.uid
+        && reportId == resource.data.annonceId + '_' + request.auth.uid
+        && isDeletingOwnAccount();
+    }
+  }
+}

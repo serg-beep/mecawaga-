@@ -1,0 +1,89 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isImageUpload() {
+      return request.resource != null
+        && request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType in [
+          'image/jpeg', 'image/png', 'image/webp', 'image/avif'
+        ];
+    }
+
+    function ownsMoto(motoId) {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/motos/$(motoId))
+        && firestore.get(/databases/(default)/documents/motos/$(motoId)).data.proprietaireId == request.auth.uid;
+    }
+
+    function hasMotoAccess(motoId) {
+      let path = /databases/(default)/documents/acces/$(motoId + '_' + request.auth.uid);
+      return signedIn()
+        && firestore.exists(path)
+        && firestore.get(path).data.motoId == motoId
+        && firestore.get(path).data.mecanicienId == request.auth.uid;
+    }
+
+    match /motos/{motoId}/photo.jpg {
+      allow read: if ownsMoto(motoId) || hasMotoAccess(motoId);
+      allow write: if ownsMoto(motoId)
+        && (request.resource == null || isImageUpload());
+    }
+
+    match /motos/{motoId}/interventions/{interventionId}/{fileName} {
+      function deletingOwnIntervention() {
+        let userPath = /databases/(default)/documents/utilisateurs/$(request.auth.uid);
+        let interventionPath = /databases/(default)/documents/motos/$(motoId)/interventions/$(interventionId);
+        return signedIn()
+          && firestore.exists(userPath)
+          && firestore.get(userPath).data.deletionRequested == true
+          && firestore.exists(interventionPath)
+          && firestore.get(interventionPath).data.mecanicienId == request.auth.uid;
+      }
+
+      allow read: if ownsMoto(motoId) || hasMotoAccess(motoId);
+      allow create, update: if isImageUpload()
+        && (ownsMoto(motoId) || hasMotoAccess(motoId));
+      allow delete: if ownsMoto(motoId)
+        || hasMotoAccess(motoId)
+        || deletingOwnIntervention();
+    }
+
+    match /ateliers/{uid}/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.auth.uid == uid
+        && isImageUpload();
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /annonces/{annonceId}/{fileName} {
+      function listingPath() {
+        return /databases/(default)/documents/annonces/$(annonceId);
+      }
+
+      function ownsListing() {
+        return signedIn()
+          && firestore.exists(listingPath())
+          && firestore.get(listingPath()).data.vendeurId == request.auth.uid;
+      }
+
+      function createdByUploader() {
+        return signedIn()
+          && request.resource.metadata.vendeurId == request.auth.uid;
+      }
+
+      allow read: if signedIn();
+      allow create: if isImageUpload()
+        && (ownsListing()
+          || (!firestore.exists(listingPath()) && createdByUploader()));
+      allow update: if isImageUpload() && ownsListing();
+      allow delete: if ownsListing()
+        || (signedIn() && resource.metadata.vendeurId == request.auth.uid);
+    }
+  }
+}
